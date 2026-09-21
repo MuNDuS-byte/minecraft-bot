@@ -1,5 +1,9 @@
 const mineflayer = require('mineflayer');
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
+const {
+    pathfinder,
+    Movements,
+    goals: { GoalNear },
+} = require('mineflayer-pathfinder');
 
 const bot = mineflayer.createBot({
     host: 'localhost',
@@ -9,37 +13,66 @@ const bot = mineflayer.createBot({
 
 bot.loadPlugin(pathfinder);
 
-let movements;
+const RANGE_GOAL = 1;
 
 bot.once('spawn', () => {
-    movements = new Movements(bot);
-    console.log('Бот зашел на сервер');
-});
+    const defaultMove = new Movements(bot);
 
-bot.on('chat', (username, message) => {
-    if (username === bot.username) return;
+    console.log('Bot joined the server');
 
-    const target = bot.players[message];
+    bot.on('chat', (username, message) => {
+        if (username === bot.username) return;
 
-    if (!target || !target.entity) {
-        bot.chat(`Игрок ${message} не найден`);
-        return;
-    }
+        const parts = message.trim().split(/\s+/);
+        const command = parts[0]?.toLowerCase();
 
-    bot.chat(`Иду к ${message}`);
+        if (command !== 'come') return;
 
-    bot.pathfinder.setMovements(movements);
+        let targetPlayerName;
 
-    bot.pathfinder.setGoal(
-        new goals.GoalNear(
-            target.entity.position.x,
-            target.entity.position.y,
-            target.entity.position.z,
-            1,
-        ),
-    );
+        if (
+            parts[1]?.toLowerCase() === 'to' &&
+            parts[2]?.toLowerCase() === 'me'
+        ) {
+            targetPlayerName = username;
+        } else {
+            targetPlayerName = parts[1];
+        }
+
+        if (!targetPlayerName) {
+            bot.chat('Usage: come <player> or come to me');
+            return;
+        }
+
+        const targetPlayer = Object.values(bot.players).find(
+            (player) =>
+                player.username.toLowerCase() ===
+                targetPlayerName.toLowerCase(),
+        );
+
+        if (!targetPlayer || !targetPlayer.entity) {
+            bot.chat(`I don't see ${targetPlayerName}`);
+            return;
+        }
+
+        const { x, y, z } = targetPlayer.entity.position;
+
+        bot.chat(`Coming to ${targetPlayer.username}`);
+
+        bot.pathfinder.setMovements(defaultMove);
+
+        bot.pathfinder.setGoal(new GoalNear(x, y, z, RANGE_GOAL));
+    });
 });
 
 bot.on('goal_reached', () => {
-    bot.chat('Я пришел');
+    bot.chat('I arrived');
+});
+
+bot.on('error', (error) => {
+    console.error('Bot error:', error);
+});
+
+bot.on('kicked', (reason) => {
+    console.log('Bot was kicked:', reason);
 });
