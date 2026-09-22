@@ -4,7 +4,7 @@ const {
 
 const RANGE_GOAL = 1;
 
-async function handleComeCommand(bot, movements, username, parts) {
+function handleComeCommand(bot, movements, username, parts) {
     let targetPlayerName;
 
     if (parts[1]?.toLowerCase() === 'to' && parts[2]?.toLowerCase() === 'me') {
@@ -15,7 +15,7 @@ async function handleComeCommand(bot, movements, username, parts) {
 
     if (!targetPlayerName) {
         bot.chat('Usage: come <player> or come to me');
-        return;
+        return false;
     }
 
     const targetPlayer = Object.values(bot.players).find(
@@ -25,7 +25,7 @@ async function handleComeCommand(bot, movements, username, parts) {
 
     if (!targetPlayer || !targetPlayer.entity) {
         bot.chat(`I don't see ${targetPlayerName}`);
-        return;
+        return false;
     }
 
     const { x, y, z } = targetPlayer.entity.position;
@@ -37,6 +37,8 @@ async function handleComeCommand(bot, movements, username, parts) {
     bot.pathfinder.setMovements(movements);
 
     bot.pathfinder.setGoal(new GoalNear(x, y, z, RANGE_GOAL));
+
+    return true;
 }
 
 module.exports = {

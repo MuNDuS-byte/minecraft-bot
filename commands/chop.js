@@ -10,26 +10,44 @@ const { findLogs } = require('../utils/blocks');
 
 const RANGE_GOAL = 1;
 
-async function moveToBlock(bot, movements, block) {
+async function moveToBlock(bot, movements, block, isStopped) {
+    if (isStopped()) {
+        return false;
+    }
+
+    // come sets canDig to false because it should not
+    // break blocks while following a player.
+    // chop needs pathfinding to be able to clear obstacles.
+    movements.canDig = true;
+
     bot.pathfinder.setMovements(movements);
 
-    await bot.pathfinder.goto(
-        new GoalNear(
-            block.position.x,
-            block.position.y,
-            block.position.z,
-            RANGE_GOAL,
-        ),
-    );
+    try {
+        await bot.pathfinder.goto(
+            new GoalNear(
+                block.position.x,
+                block.position.y,
+                block.position.z,
+                RANGE_GOAL,
+            ),
+        );
+    } catch (error) {
+        if (isStopped()) {
+            return false;
+        }
+
+        console.log('Pathfinding error:', error.message);
+        return false;
+    }
+
+    return !isStopped();
 }
 
-async function chopTrees(bot, movements, getChopping, setChopping) {
-    setChopping(true);
-
+async function chopTrees(bot, movements, isStopped, onFinished) {
     bot.chat('Starting to chop trees');
 
     try {
-        while (true) {
+        while (!isStopped()) {
             if (isInventoryFull(bot)) {
                 bot.pathfinder.stop();
                 bot.chat('My inventory is full');
@@ -59,10 +77,18 @@ async function chopTrees(bot, movements, getChopping, setChopping) {
                 continue;
             }
 
-            try {
-                await moveToBlock(bot, movements, block);
-            } catch (error) {
-                console.log('Pathfinding error:', error.message);
+            const reachedBlock = await moveToBlock(
+                bot,
+                movements,
+                block,
+                isStopped,
+            );
+
+            if (!reachedBlock) {
+                if (isStopped()) {
+                    break;
+                }
+
                 continue;
             }
 
@@ -80,10 +106,23 @@ async function chopTrees(bot, movements, getChopping, setChopping) {
                 break;
             }
 
+            if (isStopped()) {
+                break;
+            }
+
             try {
                 await bot.equip(axe, 'hand');
+
+                if (isStopped()) {
+                    break;
+                }
+
                 await bot.dig(block);
             } catch (error) {
+                if (isStopped()) {
+                    break;
+                }
+
                 console.log('Digging error:', error.message);
 
                 const newAxe = findAxe(bot);
@@ -97,7 +136,7 @@ async function chopTrees(bot, movements, getChopping, setChopping) {
         }
     } finally {
         bot.pathfinder.stop();
-        setChopping(false);
+        onFinished();
     }
 }
 

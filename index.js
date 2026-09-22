@@ -13,7 +13,11 @@ const bot = mineflayer.createBot({
 bot.loadPlugin(pathfinder);
 
 let movements;
-let chopping = false;
+
+const botState = {
+    command: null,
+    stopped: false,
+};
 
 bot.once('spawn', () => {
     movements = new Movements(bot);
@@ -26,29 +30,69 @@ bot.once('spawn', () => {
         const parts = message.trim().split(/\s+/);
         const command = parts[0]?.toLowerCase();
 
+        if (command === 'stop') {
+            stopCurrentCommand();
+            return;
+        }
+
+        if (botState.command) {
+            bot.chat(`I am currently ${botState.command}. Use stop first.`);
+            return;
+        }
+
         if (command === 'come') {
-            handleComeCommand(bot, movements, username, parts);
+            const started = handleComeCommand(bot, movements, username, parts);
+
+            if (started) {
+                botState.command = 'coming to a player';
+                botState.stopped = false;
+            }
+
+            return;
         }
 
         if (command === 'chop') {
-            if (chopping) {
-                bot.chat('I am already chopping trees');
-                return;
-            }
+            botState.command = 'chopping trees';
+            botState.stopped = false;
 
             chopTrees(
                 bot,
                 movements,
-                () => chopping,
-                (value) => {
-                    chopping = value;
+                () => botState.stopped,
+                () => {
+                    botState.command = null;
                 },
             );
+
+            return;
         }
     });
 });
 
+function stopCurrentCommand() {
+    if (!botState.command) {
+        bot.chat('I am not doing anything');
+        return;
+    }
+
+    botState.stopped = true;
+    bot.pathfinder.stop();
+
+    const stoppedCommand = botState.command;
+
+    botState.command = null;
+
+    bot.chat(`Stopped ${stoppedCommand}`);
+}
+
 bot.on('goal_reached', () => {
+    if (botState.command !== 'coming to a player') {
+        return;
+    }
+
+    botState.command = null;
+    botState.stopped = false;
+
     bot.chat('I arrived');
 });
 
