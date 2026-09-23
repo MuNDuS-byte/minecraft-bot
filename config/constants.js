@@ -30,8 +30,25 @@ const LOG_NAMES = [
     'stripped_pale_oak_log',
 ];
 
+const PICKUP_ITEM_NAMES = [
+    ...LOG_NAMES,
+
+    'oak_sapling',
+    'spruce_sapling',
+    'birch_sapling',
+    'jungle_sapling',
+    'acacia_sapling',
+    'dark_oak_sapling',
+    'mangrove_propagule',
+    'cherry_sapling',
+    'pale_oak_sapling',
+
+    'apple',
+];
+
 module.exports = {
     TREE_RADIUS,
     AXE_NAMES,
     LOG_NAMES,
+    PICKUP_ITEM_NAMES,
 };
