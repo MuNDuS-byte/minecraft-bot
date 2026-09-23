@@ -17,3 +17,7 @@ Stops when: inventory is full, no axe is available, or no trees remain.
 ## stop
 
 Stops the bot's current command.
+
+## inventory
+
+Shows all items currently in the bot's inventory.

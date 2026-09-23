@@ -3,6 +3,7 @@ const { pathfinder, Movements } = require('mineflayer-pathfinder');
 
 const { handleComeCommand } = require('./commands/come');
 const { chopTrees } = require('./commands/chop');
+const { handleInventoryCommand } = require('./commands/inventory');
 
 const bot = mineflayer.createBot({
     host: 'localhost',
@@ -32,6 +33,11 @@ bot.once('spawn', () => {
 
         if (command === 'stop') {
             stopCurrentCommand();
+            return;
+        }
+
+        if (command === 'inventory') {
+            handleInventoryCommand(bot);
             return;
         }
 

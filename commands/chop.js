@@ -1,5 +1,5 @@
 const {
-    goals: { GoalLookAtBlock },
+    goals: { GoalLookAtBlock, GoalNear },
 } = require('mineflayer-pathfinder');
 
 const { TREE_RADIUS } = require('../config/constants');
@@ -9,6 +9,7 @@ const { findAxe, isInventoryFull } = require('../utils/inventory');
 const { findLogs, findTreeLogs, findDroppedItems } = require('../utils/blocks');
 
 const RANGE_GOAL = 4.5;
+const ITEM_PICKUP_RANGE = 1.5;
 
 async function moveToBlock(bot, movements, block, isStopped) {
     if (isStopped()) {
@@ -51,9 +52,12 @@ async function moveToItem(bot, movements, item, isStopped) {
 
     try {
         await bot.pathfinder.goto(
-            new GoalLookAtBlock(item.position, bot.world, {
-                reach: RANGE_GOAL,
-            }),
+            new GoalNear(
+                item.position.x,
+                item.position.y,
+                item.position.z,
+                ITEM_PICKUP_RANGE,
+            ),
         );
     } catch (error) {
         if (isStopped()) {
@@ -69,6 +73,8 @@ async function moveToItem(bot, movements, item, isStopped) {
 }
 
 async function collectDroppedItems(bot, movements, startPosition, isStopped) {
+    bot.chat('Looking for useful items');
+
     while (!isStopped()) {
         if (isInventoryFull(bot)) {
             bot.pathfinder.stop();
@@ -78,19 +84,31 @@ async function collectDroppedItems(bot, movements, startPosition, isStopped) {
 
         const items = findDroppedItems(bot, startPosition, TREE_RADIUS);
 
+        console.log(`Useful items found: ${items.length}`);
+
         if (items.length === 0) {
             return true;
         }
 
         const item = items[0];
 
+        const droppedItem = item.getDroppedItem?.();
+
+        if (droppedItem) {
+            console.log(`Going to collect: ${droppedItem.name}`);
+        }
+
         const reachedItem = await moveToItem(bot, movements, item, isStopped);
 
         if (!reachedItem) {
-            return !isStopped();
+            if (isStopped()) {
+                return false;
+            }
+
+            continue;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 700));
     }
 
     return false;
@@ -122,6 +140,7 @@ async function chopTree(bot, movements, startPosition, firstLog, isStopped) {
         );
 
         const logPosition = treeLogs[0];
+
         const block = bot.blockAt(logPosition);
 
         if (!block) {
@@ -197,11 +216,12 @@ async function chopTrees(bot, movements, isStopped, onFinished) {
     bot.chat('Starting to chop trees');
 
     try {
+        // PHASE 1: CHOP ALL TREES
         while (!isStopped()) {
             if (isInventoryFull(bot)) {
                 bot.pathfinder.stop();
                 bot.chat('My inventory is full');
-                break;
+                return;
             }
 
             const axe = findAxe(bot);
@@ -209,7 +229,7 @@ async function chopTrees(bot, movements, isStopped, onFinished) {
             if (!axe) {
                 bot.pathfinder.stop();
                 bot.chat('I need an axe');
-                break;
+                return;
             }
 
             const logs = findLogs(bot, TREE_RADIUS, startPosition);
@@ -235,7 +255,7 @@ async function chopTrees(bot, movements, isStopped, onFinished) {
             );
 
             if (!treeFinished || isStopped()) {
-                break;
+                return;
             }
         }
 
@@ -243,19 +263,35 @@ async function chopTrees(bot, movements, isStopped, onFinished) {
             return;
         }
 
-        if (isInventoryFull(bot)) {
-            bot.pathfinder.stop();
-            bot.chat('My inventory is full');
+        // PHASE 2: COLLECT USEFUL ITEMS
+        const collected = await collectDroppedItems(
+            bot,
+            movements,
+            startPosition,
+            isStopped,
+        );
+
+        if (!collected || isStopped()) {
             return;
         }
 
-        await collectDroppedItems(bot, movements, startPosition, isStopped);
+        // PHASE 3: FINAL CHECK
+        const remainingItems = findDroppedItems(
+            bot,
+            startPosition,
+            TREE_RADIUS,
+        );
 
-        if (isStopped()) {
-            return;
+        if (remainingItems.length > 0) {
+            await collectDroppedItems(bot, movements, startPosition, isStopped);
+
+            if (isStopped()) {
+                return;
+            }
         }
 
         bot.pathfinder.stop();
+
         bot.chat('All trees chopped and useful items collected');
     } finally {
         bot.pathfinder.stop();

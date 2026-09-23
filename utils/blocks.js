@@ -31,12 +31,6 @@ function findLogs(bot, radius, center) {
 }
 
 function findTreeLogs(bot, startPosition, radius, seedPosition) {
-    const logIds = getLogIds(bot);
-
-    if (logIds.length === 0) {
-        return [];
-    }
-
     const logs = findLogs(bot, radius, startPosition);
 
     const logMap = new Map(
@@ -87,8 +81,8 @@ function findTreeLogs(bot, startPosition, radius, seedPosition) {
 }
 
 function findDroppedItems(bot, center, radius) {
-    const items = Object.values(bot.entities).filter((entity) => {
-        if (entity.type !== 'object' && entity.type !== 'item') {
+    const nearbyObjects = Object.values(bot.entities).filter((entity) => {
+        if (entity.type !== 'object') {
             return false;
         }
 
@@ -96,17 +90,32 @@ function findDroppedItems(bot, center, radius) {
             return false;
         }
 
-        const distance = entity.position.distanceTo(center);
+        return entity.position.distanceTo(center) <= radius;
+    });
 
-        if (distance > radius) {
-            return false;
+    console.log(`Nearby object entities: ${nearbyObjects.length}`);
+
+    for (const entity of nearbyObjects) {
+        let droppedItem = null;
+
+        try {
+            droppedItem = entity.getDroppedItem?.();
+        } catch (error) {
+            console.log('getDroppedItem error:', error.message);
         }
 
-        if (typeof entity.getDroppedItem !== 'function') {
-            return false;
-        }
+        console.log('Object entity:', {
+            id: entity.id,
+            name: entity.name,
+            displayName: entity.displayName,
+            objectType: entity.objectType,
+            entityType: entity.entityType,
+            droppedItemName: droppedItem?.name ?? null,
+        });
+    }
 
-        const droppedItem = entity.getDroppedItem();
+    const items = nearbyObjects.filter((entity) => {
+        const droppedItem = entity.getDroppedItem?.();
 
         if (!droppedItem) {
             return false;
