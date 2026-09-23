@@ -1,4 +1,4 @@
-const KEEP_ITEMS = ['diamond_axe', 'iron_axe', 'cooked_beef', 'cobblestone'];
+const { KEEP_ITEMS } = require('../config/constants');
 
 async function handleInventoryCommand(bot) {
     const items = bot.inventory.items();

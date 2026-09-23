@@ -46,9 +46,12 @@ const PICKUP_ITEM_NAMES = [
     'apple',
 ];
 
+const KEEP_ITEMS = ['diamond_axe', 'iron_axe', 'cooked_beef', 'cobblestone'];
+
 module.exports = {
     TREE_RADIUS,
     AXE_NAMES,
     LOG_NAMES,
     PICKUP_ITEM_NAMES,
+    KEEP_ITEMS,
 };
