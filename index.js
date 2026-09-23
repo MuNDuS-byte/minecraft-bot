@@ -5,6 +5,8 @@ const { handleComeCommand } = require('./commands/come');
 const { chopTrees } = require('./commands/chop');
 const { handleInventoryCommand } = require('./commands/inventory');
 
+const { createDroppedItemTracker } = require('./utils/droppedItems');
+
 const bot = mineflayer.createBot({
     host: 'localhost',
     port: 25565,
@@ -14,6 +16,7 @@ const bot = mineflayer.createBot({
 bot.loadPlugin(pathfinder);
 
 let movements;
+let droppedItemTracker;
 
 const botState = {
     command: null,
@@ -22,6 +25,8 @@ const botState = {
 
 bot.once('spawn', () => {
     movements = new Movements(bot);
+
+    droppedItemTracker = createDroppedItemTracker(bot);
 
     console.log('Bot joined the server');
 
@@ -33,11 +38,6 @@ bot.once('spawn', () => {
 
         if (command === 'stop') {
             stopCurrentCommand();
-            return;
-        }
-
-        if (command === 'inventory') {
-            handleInventoryCommand(bot);
             return;
         }
 
@@ -64,12 +64,18 @@ bot.once('spawn', () => {
             chopTrees(
                 bot,
                 movements,
+                droppedItemTracker,
                 () => botState.stopped,
                 () => {
                     botState.command = null;
                 },
             );
 
+            return;
+        }
+
+        if (command === 'inventory') {
+            handleInventoryCommand(bot);
             return;
         }
     });

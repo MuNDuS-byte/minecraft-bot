@@ -1,4 +1,4 @@
-const { LOG_NAMES, PICKUP_ITEM_NAMES } = require('../config/constants');
+const { LOG_NAMES } = require('../config/constants');
 
 const DIRECTIONS = [
     { x: 1, y: 0, z: 0 },
@@ -80,59 +80,7 @@ function findTreeLogs(bot, startPosition, radius, seedPosition) {
     return tree;
 }
 
-function findDroppedItems(bot, center, radius) {
-    const nearbyObjects = Object.values(bot.entities).filter((entity) => {
-        if (entity.type !== 'object') {
-            return false;
-        }
-
-        if (!entity.position) {
-            return false;
-        }
-
-        return entity.position.distanceTo(center) <= radius;
-    });
-
-    console.log(`Nearby object entities: ${nearbyObjects.length}`);
-
-    for (const entity of nearbyObjects) {
-        let droppedItem = null;
-
-        try {
-            droppedItem = entity.getDroppedItem?.();
-        } catch (error) {
-            console.log('getDroppedItem error:', error.message);
-        }
-
-        console.log('Object entity:', {
-            id: entity.id,
-            name: entity.name,
-            displayName: entity.displayName,
-            objectType: entity.objectType,
-            entityType: entity.entityType,
-            droppedItemName: droppedItem?.name ?? null,
-        });
-    }
-
-    const items = nearbyObjects.filter((entity) => {
-        const droppedItem = entity.getDroppedItem?.();
-
-        if (!droppedItem) {
-            return false;
-        }
-
-        return PICKUP_ITEM_NAMES.includes(droppedItem.name);
-    });
-
-    return items.sort(
-        (a, b) =>
-            a.position.distanceTo(bot.entity.position) -
-            b.position.distanceTo(bot.entity.position),
-    );
-}
-
 module.exports = {
     findLogs,
     findTreeLogs,
-    findDroppedItems,
 };

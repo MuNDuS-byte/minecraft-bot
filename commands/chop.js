@@ -6,7 +6,7 @@ const { TREE_RADIUS } = require('../config/constants');
 
 const { findAxe, isInventoryFull } = require('../utils/inventory');
 
-const { findLogs, findTreeLogs, findDroppedItems } = require('../utils/blocks');
+const { findLogs, findTreeLogs } = require('../utils/blocks');
 
 const RANGE_GOAL = 4.5;
 const ITEM_PICKUP_RANGE = 1.5;
@@ -72,7 +72,13 @@ async function moveToItem(bot, movements, item, isStopped) {
     return !isStopped();
 }
 
-async function collectDroppedItems(bot, movements, startPosition, isStopped) {
+async function collectDroppedItems(
+    bot,
+    movements,
+    droppedItemTracker,
+    startPosition,
+    isStopped,
+) {
     bot.chat('Looking for useful items');
 
     while (!isStopped()) {
@@ -82,9 +88,7 @@ async function collectDroppedItems(bot, movements, startPosition, isStopped) {
             return false;
         }
 
-        const items = findDroppedItems(bot, startPosition, TREE_RADIUS);
-
-        console.log(`Useful items found: ${items.length}`);
+        const items = droppedItemTracker.find(startPosition, TREE_RADIUS);
 
         if (items.length === 0) {
             return true;
@@ -94,9 +98,11 @@ async function collectDroppedItems(bot, movements, startPosition, isStopped) {
 
         const droppedItem = item.getDroppedItem?.();
 
-        if (droppedItem) {
-            console.log(`Going to collect: ${droppedItem.name}`);
+        if (!droppedItem) {
+            continue;
         }
+
+        console.log(`Going to collect: ${droppedItem.name}`);
 
         const reachedItem = await moveToItem(bot, movements, item, isStopped);
 
@@ -210,7 +216,13 @@ async function chopTree(bot, movements, startPosition, firstLog, isStopped) {
     return false;
 }
 
-async function chopTrees(bot, movements, isStopped, onFinished) {
+async function chopTrees(
+    bot,
+    movements,
+    droppedItemTracker,
+    isStopped,
+    onFinished,
+) {
     const startPosition = bot.entity.position.clone();
 
     bot.chat('Starting to chop trees');
@@ -267,27 +279,13 @@ async function chopTrees(bot, movements, isStopped, onFinished) {
         const collected = await collectDroppedItems(
             bot,
             movements,
+            droppedItemTracker,
             startPosition,
             isStopped,
         );
 
         if (!collected || isStopped()) {
             return;
-        }
-
-        // PHASE 3: FINAL CHECK
-        const remainingItems = findDroppedItems(
-            bot,
-            startPosition,
-            TREE_RADIUS,
-        );
-
-        if (remainingItems.length > 0) {
-            await collectDroppedItems(bot, movements, startPosition, isStopped);
-
-            if (isStopped()) {
-                return;
-            }
         }
 
         bot.pathfinder.stop();
