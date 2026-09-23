@@ -1,9 +1,11 @@
 const mineflayer = require('mineflayer');
-const {
-    pathfinder,
-    Movements,
-    goals: { GoalNear },
-} = require('mineflayer-pathfinder');
+const { pathfinder, Movements } = require('mineflayer-pathfinder');
+
+const { handleComeCommand } = require('./commands/come');
+const { chopTrees } = require('./commands/chop');
+const { handleInventoryCommand } = require('./commands/inventory');
+
+const { createDroppedItemTracker } = require('./utils/droppedItems');
 
 const bot = mineflayer.createBot({
     host: 'localhost',
@@ -13,10 +15,18 @@ const bot = mineflayer.createBot({
 
 bot.loadPlugin(pathfinder);
 
-const RANGE_GOAL = 1;
+let movements;
+let droppedItemTracker;
+
+const botState = {
+    command: null,
+    stopped: false,
+};
 
 bot.once('spawn', () => {
-    const defaultMove = new Movements(bot);
+    movements = new Movements(bot);
+
+    droppedItemTracker = createDroppedItemTracker(bot);
 
     console.log('Bot joined the server');
 
@@ -26,46 +36,75 @@ bot.once('spawn', () => {
         const parts = message.trim().split(/\s+/);
         const command = parts[0]?.toLowerCase();
 
-        if (command !== 'come') return;
-
-        let targetPlayerName;
-
-        if (
-            parts[1]?.toLowerCase() === 'to' &&
-            parts[2]?.toLowerCase() === 'me'
-        ) {
-            targetPlayerName = username;
-        } else {
-            targetPlayerName = parts[1];
-        }
-
-        if (!targetPlayerName) {
-            bot.chat('Usage: come <player> or come to me');
+        if (command === 'stop') {
+            stopCurrentCommand();
             return;
         }
 
-        const targetPlayer = Object.values(bot.players).find(
-            (player) =>
-                player.username.toLowerCase() ===
-                targetPlayerName.toLowerCase(),
-        );
-
-        if (!targetPlayer || !targetPlayer.entity) {
-            bot.chat(`I don't see ${targetPlayerName}`);
+        if (botState.command) {
+            bot.chat(`I am currently ${botState.command}. Use stop first.`);
             return;
         }
 
-        const { x, y, z } = targetPlayer.entity.position;
+        if (command === 'come') {
+            const started = handleComeCommand(bot, movements, username, parts);
 
-        bot.chat(`Coming to ${targetPlayer.username}`);
+            if (started) {
+                botState.command = 'coming to a player';
+                botState.stopped = false;
+            }
 
-        bot.pathfinder.setMovements(defaultMove);
+            return;
+        }
 
-        bot.pathfinder.setGoal(new GoalNear(x, y, z, RANGE_GOAL));
+        if (command === 'chop') {
+            botState.command = 'chopping trees';
+            botState.stopped = false;
+
+            chopTrees(
+                bot,
+                movements,
+                droppedItemTracker,
+                () => botState.stopped,
+                () => {
+                    botState.command = null;
+                },
+            );
+
+            return;
+        }
+
+        if (command === 'inventory') {
+            handleInventoryCommand(bot);
+            return;
+        }
     });
 });
 
+function stopCurrentCommand() {
+    if (!botState.command) {
+        bot.chat('I am not doing anything');
+        return;
+    }
+
+    botState.stopped = true;
+    bot.pathfinder.stop();
+
+    const stoppedCommand = botState.command;
+
+    botState.command = null;
+
+    bot.chat(`Stopped ${stoppedCommand}`);
+}
+
 bot.on('goal_reached', () => {
+    if (botState.command !== 'coming to a player') {
+        return;
+    }
+
+    botState.command = null;
+    botState.stopped = false;
+
     bot.chat('I arrived');
 });
 
