@@ -1,4 +1,4 @@
-const KEEP_ITEMS = ['diamond_axe', 'iron_axe', 'cooked_beef'];
+const KEEP_ITEMS = ['diamond_axe', 'iron_axe', 'cooked_beef', 'cobblestone'];
 
 async function handleInventoryCommand(bot) {
     const items = bot.inventory.items();
