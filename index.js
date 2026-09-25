@@ -2,21 +2,26 @@ const mineflayer = require('mineflayer');
 const { pathfinder, Movements } = require('mineflayer-pathfinder');
 
 const { handleComeCommand } = require('./commands/come');
-const { chopTrees } = require('./commands/chop');
+const { chopTrees, collectDroppedItems } = require('./commands/chop');
 const { handleInventoryCommand } = require('./commands/inventory');
+const { sleepAtNearestBed } = require('./commands/sleep');
+const { mountVehicle } = require('./commands/mount');
 
 const { createDroppedItemTracker } = require('./utils/droppedItems');
+const { createAutoEat } = require('./utils/food');
+const { PICKUP_ITEM_NAMES } = require('./config/constants');
 
 const bot = mineflayer.createBot({
     host: 'localhost',
     port: 25565,
     username: 'MyBot',
 });
-
+// наступит на item
 bot.loadPlugin(pathfinder);
 
 let movements;
 let droppedItemTracker;
+let stopAutoEat;
 
 const botState = {
     command: null,
@@ -75,10 +80,79 @@ bot.once('spawn', () => {
             return;
         }
 
+        if (command === 'collect' || command === 'item') {
+            const itemNames =
+                command === 'item' && parts[1]?.toLowerCase() === 'collection'
+                    ? parts.slice(2)
+                    : parts.slice(1);
+            const requestedItems = itemNames.length
+                ? itemNames
+                : PICKUP_ITEM_NAMES;
+
+            botState.command = 'collecting items';
+            botState.stopped = false;
+
+            collectDroppedItems(
+                bot,
+                movements,
+                droppedItemTracker,
+                bot.entity.position.clone(),
+                () => botState.stopped,
+                requestedItems,
+            ).finally(() => {
+                if (!botState.stopped) {
+                    bot.chat('Item collection finished');
+                }
+                botState.command = null;
+            });
+
+            return;
+        }
+
+        if (command === 'sleep') {
+            botState.command = 'sleeping';
+            botState.stopped = false;
+            sleepAtNearestBed(
+                bot,
+                movements,
+                () => botState.stopped,
+                () => {
+                    botState.command = null;
+                },
+            );
+            return;
+        }
+
+        if (command === 'mount' || command === 'ride' || command === 'sit') {
+            const vehicleType = parts[1]?.toLowerCase();
+
+            if (vehicleType !== 'boat' && vehicleType !== 'minecart') {
+                bot.chat('Usage: mount <boat|minecart>');
+                return;
+            }
+
+            botState.command = `mounting ${vehicleType}`;
+            botState.stopped = false;
+            mountVehicle(
+                bot,
+                movements,
+                vehicleType,
+                () => botState.stopped,
+                () => {
+                    botState.command = null;
+                },
+            );
+            return;
+        }
+
         if (command === 'inventory') {
             handleInventoryCommand(bot);
             return;
         }
+    });
+
+    bot.on('end', () => {
+        stopAutoEat?.();
     });
 });
 

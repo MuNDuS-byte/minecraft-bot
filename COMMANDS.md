@@ -21,3 +21,20 @@ Stops the bot's current command.
 ## inventory
 
 Shows all items currently in the bot's inventory.
+
+## collect [item ...]
+
+Collects nearby dropped items tracked by the bot. With item names, only those
+items are collected. `item collection [item ...]` is also supported.
+
+## sleep
+
+Walks to the nearest bed within 32 blocks and sleeps there.
+
+## mount <boat|minecart>
+
+Walks to the nearest nearby boat or minecart and mounts it. `ride` and `sit`
+can be used as aliases.
+
+The bot automatically eats food from its inventory when its hunger is 14 or
+lower.
