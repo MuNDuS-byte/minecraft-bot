@@ -78,6 +78,7 @@ async function collectDroppedItems(
     droppedItemTracker,
     startPosition,
     isStopped,
+    itemNames,
 ) {
     bot.chat('Looking for useful items');
 
@@ -88,7 +89,11 @@ async function collectDroppedItems(
             return false;
         }
 
-        const items = droppedItemTracker.find(startPosition, TREE_RADIUS);
+        const items = droppedItemTracker.find(
+            startPosition,
+            TREE_RADIUS,
+            itemNames,
+        );
 
         if (items.length === 0) {
             return true;
@@ -299,4 +304,5 @@ async function chopTrees(
 
 module.exports = {
     chopTrees,
+    collectDroppedItems,
 };

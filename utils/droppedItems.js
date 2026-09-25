@@ -26,14 +26,20 @@ function createDroppedItemTracker(bot) {
     });
 
     return {
-        find(center, radius) {
+        find(center, radius, itemNames = PICKUP_ITEM_NAMES) {
             return [...droppedItems.values()]
                 .filter((entity) => {
                     if (!entity.position) {
                         return false;
                     }
 
-                    return entity.position.distanceTo(center) <= radius;
+                    const item = entity.getDroppedItem?.();
+
+                    return (
+                        item &&
+                        itemNames.includes(item.name) &&
+                        entity.position.distanceTo(center) <= radius
+                    );
                 })
                 .sort(
                     (a, b) =>
