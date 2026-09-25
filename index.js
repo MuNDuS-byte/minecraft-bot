@@ -27,6 +27,7 @@ bot.once('spawn', () => {
     movements = new Movements(bot);
 
     droppedItemTracker = createDroppedItemTracker(bot);
+    stopAutoEat = createAutoEat(bot);
 
     console.log('Bot joined the server');
 

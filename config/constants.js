@@ -48,10 +48,56 @@ const PICKUP_ITEM_NAMES = [
 
 const KEEP_ITEMS = ['diamond_axe', 'iron_axe', 'cooked_beef', 'cobblestone'];
 
+const FOOD_NAMES = [
+    'apple',
+    'bread',
+    'baked_potato',
+    'carrot',
+    'cooked_beef',
+    'cooked_chicken',
+    'cooked_mutton',
+    'cooked_porkchop',
+    'cooked_rabbit',
+    'cooked_salmon',
+    'cooked_cod',
+    'golden_carrot',
+    'melon_slice',
+    'pumpkin_pie',
+    'rabbit_stew',
+    'mushroom_stew',
+    'beetroot',
+    'beetroot_soup',
+    'sweet_berries',
+    'glow_berries',
+    'dried_kelp',
+    'tropical_fish',
+];
+
+const BED_NAMES = [
+    'white_bed',
+    'orange_bed',
+    'magenta_bed',
+    'light_blue_bed',
+    'yellow_bed',
+    'lime_bed',
+    'pink_bed',
+    'gray_bed',
+    'light_gray_bed',
+    'cyan_bed',
+    'purple_bed',
+    'blue_bed',
+    'brown_bed',
+    'green_bed',
+    'red_bed',
+    'black_bed',
+];
+
 module.exports = {
     TREE_RADIUS,
     AXE_NAMES,
     LOG_NAMES,
     PICKUP_ITEM_NAMES,
     KEEP_ITEMS,
+    FOOD_NAMES,
+    BED_NAMES,
 };
