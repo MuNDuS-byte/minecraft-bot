@@ -3,13 +3,14 @@ const {
 } = require('mineflayer-pathfinder');
 
 const { TREE_RADIUS } = require('../config/constants');
+const { TREE_SEARCH_RADIUS } = require('../config/constants');
 
 const { findAxe, isInventoryFull } = require('../utils/inventory');
 
 const { findLogs, findTreeLogs } = require('../utils/blocks');
 
-const RANGE_GOAL = 4.5;
-const ITEM_PICKUP_RANGE = 1.5;
+const RANGE_GOAL = 3.2;
+const ITEM_PICKUP_RANGE = 0.25;
 
 async function moveToBlock(bot, movements, block, isStopped) {
     if (isStopped()) {
@@ -119,7 +120,9 @@ async function collectDroppedItems(
             continue;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 700));
+        // Keep moving once we are close enough. Mineflayer picks up the item
+        // on contact; waiting for the entity to disappear can stall on leaves.
+        await new Promise((resolve) => setTimeout(resolve, 150));
     }
 
     return false;
@@ -221,6 +224,48 @@ async function chopTree(bot, movements, startPosition, firstLog, isStopped) {
     return false;
 }
 
+async function storeLogsInChest(bot, movements, center, isStopped) {
+    const chestIds = ['chest', 'trapped_chest']
+        .map((name) => bot.registry.blocksByName[name]?.id)
+        .filter((id) => id !== undefined);
+    const chests = chestIds.length ? bot.findBlocks({
+        point: center,
+        matching: (block) => chestIds.includes(block.type),
+        maxDistance: TREE_RADIUS,
+        count: 10,
+    }) : [];
+
+    if (!chests.length) {
+        bot.chat('No chest found. Please place a chest nearby.');
+        return false;
+    }
+
+    chests.sort((a, b) => bot.entity.position.distanceTo(a) - bot.entity.position.distanceTo(b));
+    const position = chests[0];
+    movements.canDig = true;
+    bot.pathfinder.setMovements(movements);
+    try {
+        await bot.pathfinder.goto(new GoalLookAtBlock(position, bot.world, { reach: 3.2 }));
+        if (isStopped()) return false;
+        const container = await bot.openContainer(bot.blockAt(position));
+        try {
+            for (const item of bot.inventory.items()) {
+                if (item.name.endsWith('_log') || item.name.endsWith('_sapling') || item.name === 'apple') {
+                    if (isStopped()) return false;
+                    await container.deposit(item.type, null, item.count);
+                }
+            }
+        } finally {
+            container.close();
+        }
+        return true;
+    } catch (error) {
+        if (!isStopped()) bot.chat('Could not store items in the chest');
+        console.log('Chest storage error:', error.message);
+        return false;
+    }
+}
+
 async function chopTrees(
     bot,
     movements,
@@ -249,7 +294,7 @@ async function chopTrees(
                 return;
             }
 
-            const logs = findLogs(bot, TREE_RADIUS, startPosition);
+            const logs = findLogs(bot, TREE_SEARCH_RADIUS, startPosition);
 
             if (logs.length === 0) {
                 break;
@@ -290,6 +335,10 @@ async function chopTrees(
         );
 
         if (!collected || isStopped()) {
+            return;
+        }
+
+        if (!await storeLogsInChest(bot, movements, startPosition, isStopped) || isStopped()) {
             return;
         }
 
