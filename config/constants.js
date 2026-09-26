@@ -1,4 +1,5 @@
-const TREE_RADIUS = 20;
+const TREE_RADIUS = 48;
+const TREE_SEARCH_RADIUS = 10;
 
 const AXE_NAMES = [
     'wooden_axe',
@@ -46,7 +47,7 @@ const PICKUP_ITEM_NAMES = [
     'apple',
 ];
 
-const KEEP_ITEMS = ['diamond_axe', 'iron_axe', 'cooked_beef', 'cobblestone'];
+const KEEP_ITEMS = ['diamond_axe', 'iron_axe', 'cooked_beef', 'cobblestone', 'dirt', 'wooden_shovel', 'stone_shovel', 'iron_shovel', 'golden_shovel', 'diamond_shovel', 'netherite_shovel'];
 
 const FOOD_NAMES = [
     'apple',
@@ -94,6 +95,7 @@ const BED_NAMES = [
 
 module.exports = {
     TREE_RADIUS,
+    TREE_SEARCH_RADIUS,
     AXE_NAMES,
     LOG_NAMES,
     PICKUP_ITEM_NAMES,
