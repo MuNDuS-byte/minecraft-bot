@@ -10,9 +10,8 @@ Makes the bot walk to the player who sent the command.
 
 ## chop
 
-Chops trees within 20 blocks of the command start position and collects logs, saplings, and apples.
-Bot searches for an axe, finds logs within 20 blocks and chops them.
-Stops when: inventory is full, no axe is available, or no trees remain.
+Chops the nearest tree within 10 blocks of the command start position, then collects dropped logs, saplings, and apples within 48 blocks. A chest must be available within 48 blocks for storing the collected wood and tree drops.
+Stops when: inventory is full, no axe is available, no nearby trees remain, or a chest is not available.
 
 ## stop
 
@@ -24,8 +23,7 @@ Shows all items currently in the bot's inventory.
 
 ## collect [item ...]
 
-Collects nearby dropped items tracked by the bot. With item names, only those
-items are collected. `item collection [item ...]` is also supported.
+Collects dropped items tracked by the bot within 48 blocks when they are resting on solid ground. With item names, only those items are collected. `item collection [item ...]` is also supported.
 
 ## sleep
 
