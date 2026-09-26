@@ -34,9 +34,13 @@ function createDroppedItemTracker(bot) {
                     }
 
                     const item = entity.getDroppedItem?.();
+                    const support = bot.blockAt(entity.position.offset(0, -0.8, 0));
+                    const onGround = support && support.boundingBox === 'block' &&
+                        !support.name.endsWith('_leaves') && support.name !== 'vine';
 
                     return (
                         item &&
+                        onGround &&
                         itemNames.includes(item.name) &&
                         entity.position.distanceTo(center) <= radius
                     );
